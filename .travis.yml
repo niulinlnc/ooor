@@ -16,9 +16,11 @@ before_install:
   - rvm install 2.3.4
 
 env:
-  - VERSION="7.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=3.2
-  - VERSION="8.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=4.2
-  - VERSION="9.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=5.1
+  # - VERSION="7.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=3.2
+  # - VERSION="8.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=4.2
+  # - VERSION="9.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=5.1
+  - VERSION="10.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" RAILS_VERSION=5.1
+
 
 virtualenv:
   system_site_packages: true
