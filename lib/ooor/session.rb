@@ -16,7 +16,7 @@ module Ooor
     def report(); @report_service ||= ReportService.new(self); end
 
 
-    def public_controller_method(path, query_values)
+    def public_controller_method(path, query_values={})
       unless defined?(Addressable)
         raise "You need to install the addressable gem for this feature"
       end
@@ -34,7 +34,7 @@ module Ooor
     end
 
     def initialize(config, web_session, id)
-      set_config(_config(config))
+      set_config(HashWithIndifferentAccess.new(config))
       Object.const_set(config[:scope_prefix], Module.new) if config[:scope_prefix]
       @models = {}
       @local_context = {}
@@ -51,6 +51,9 @@ module Ooor
 
     def login(db, username, password, kw={})
       logger.debug "OOOR login - db: #{db}, username: #{username}"
+      raise "Cannot login without specifying a database" unless db
+      raise "Cannot login without specifying a username" unless username
+      raise "Cannot login without specifying a password" unless password
       if config[:force_xml_rpc]
         send("ooor_alias_login", db, username, password)
       else
@@ -104,9 +107,9 @@ module Ooor
       self[key] = value
     end
 
-    def global_login(options)
+    def global_login(options={})
       set_config(options)
-      load_models(config[:models], options[:reload])
+      load_models(config[:models], config[:reload])
     end
 
     def with_context(context)
@@ -222,22 +225,25 @@ module Ooor
     end
 
     def odoo_serie
-      if config[:server_version_info] # v10 and onward
-        config[:server_version_info][0]
-      elsif config['partner_id']
-        9
-      elsif web_session[:sid]
-        7
+      if config.user_id # authenticated session
+        if config[:server_version_info] # v10 and onward
+          config[:server_version_info][0]
+        elsif config['partner_id']
+          9
+        elsif web_session[:sid]
+          7
+        else
+          8
+        end
       else
-        8
+        json_conn = get_client(:json, base_jsonrpc2_url)
+        begin
+          @version_info ||= json_conn.oe_service(web_session, "/web/webclient/version_info", nil, nil, [])
+          @version_info['server_serie'].to_i
+        rescue # Odoo v7 doesn't have this version info service
+          7
+        end
       end
-    end
-
-    private
-
-    def _config(config)
-      c = config.is_a?(String) ? Ooor.load_config(config, env) : config #TODO env, see old Connection
-      HashWithIndifferentAccess.new(c)
     end
 
   end

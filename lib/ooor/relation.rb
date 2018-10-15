@@ -7,6 +7,7 @@
 
 module Ooor
   # = Similar to Active Record Relation
+  # subset of https://github.com/rails/rails/blob/master/activerecord/lib/active_record/relation/query_methods.rb
   class Relation
     attr_reader :klass, :loaded
     attr_accessor :options, :count_field, :includes_values, :eager_load_values, :preload_values,
@@ -23,7 +24,7 @@ module Ooor
         opts.keys.map {|key|["#{key}", "=", opts[key]]}
       end
     end
-    
+
     def where(opts, *rest)
       relation = clone
       if opts.is_a?(Array) && opts.any? {|e| e.is_a? Array}
@@ -51,18 +52,24 @@ module Ooor
       relation.offset_value = value
       relation
     end
-    
+
     def order(*args)
       relation = clone
       relation.order_values += args.flatten unless args.blank? || args[0] == false
       relation
     end
-    
+
+    def includes(*values)
+      relation = clone
+      relation.includes_values = values
+      relation
+    end
+
 #    def count(column_name = nil, options = {}) #TODO possible to implement?
 #      column_name, options = nil, column_name if column_name.is_a?(Hash)
 #      calculate(:count, column_name, options)
 #    end
-    
+
     def initialize(klass, options={})
       @klass = klass
       @where_values = []
@@ -72,12 +79,12 @@ module Ooor
       @offset_value = 0
       @order_values = []
     end
-    
+
     def new(*args, &block)
       #TODO inject current domain in *args
       @klass.new(*args, &block)
     end
-    
+
     alias build new
 
     def reload
@@ -134,7 +141,7 @@ module Ooor
         else
           search_order = @order_values.join(", ")
         end
-        
+
         if @options && @options[:name_search]
           name_search = @klass.name_search(@options[:name_search], where_values, 'ilike', @options[:context], @limit_value)
           @records = name_search.map do |tuple|
@@ -145,11 +152,11 @@ module Ooor
         end
       end
     end
-  
+
     def eager_loading?
       false
     end
-    
+
     def inspect
       entries = to_a.take([limit_value, 11].compact.min).map!(&:inspect)
       entries[10] = '...' if entries.size == 11
@@ -173,7 +180,8 @@ module Ooor
           offset: offset,
           limit: limit,
           order: search_order,
-        })
+          includes: includes_values,
+      })
       scope = @options.delete(:ids) || :all
       if scope == []
         @records = []
